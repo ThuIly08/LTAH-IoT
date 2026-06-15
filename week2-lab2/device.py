@@ -6,14 +6,15 @@ def on_msg(c, u, m): #callback mỗi khi có lệnh gọi tới (paho TỰ gọi
  global light
  rid = m.topic.split('/')[-1] #request_id tách từ topic — phần tử cuối sau split('/')
  cmd = json.loads(m.payload)
- print(f"topic request/{rid} - lệnh: ",cmd["method"], cmd.get("params"))
+ method = cmd["method"]
+ print(f"topic request/{rid} - lệnh: ", method, cmd.get("params"))
  # thực thi hành động theo loại lệnh:
- if cmd["method"] == "setLight":        # dashboard gạt công tắc -> đặt trạng thái đèn
+ if method == "setLight":        # nút Power gạt -> ĐẶT trạng thái đèn (params = true/false)
   light = cmd["params"]
- # với getLight: chỉ cần trả về trạng thái hiện tại (dùng khi dashboard mới mở, cần biết đèn đang bật/tắt)
+ elif method == "getLight":      # LED indicator hỏi -> chỉ ĐỌC, không đổi gì
+  pass                          # không làm gì thêm, chỉ trả light hiện tại ở dưới
  resp = f"v1/devices/me/rpc/response/{rid}"
- c.publish(resp, json.dumps(light))     # trả trạng thái đèn về cho server/dashboard
- c.publish("v1/devices/me/telemetry", json.dumps({"light": light}))  # gửi trạng thái lên để hiển thị trên dashboard
+ c.publish(resp, json.dumps(light))     # trả trạng thái đèn (true/false) về cho server/LED qua RPC response
 
 
 c = mqtt.Client() #mở 1 mqtt client
