@@ -15,6 +15,7 @@ def on_msg(c, u, m): #callback mỗi khi có lệnh gọi tới (paho TỰ gọi
   pass                          # không làm gì thêm, chỉ trả light hiện tại ở dưới
  resp = f"v1/devices/me/rpc/response/{rid}"
  c.publish(resp, json.dumps(light))     # trả trạng thái đèn (true/false) về cho server/LED qua RPC response
+ c.publish("v1/devices/me/telemetry", json.dumps({"light": light}))
 
 
 c = mqtt.Client() #mở 1 mqtt client
