@@ -7,34 +7,39 @@ from datetime import datetime, timezone
 
 import paho.mqtt.client as mqtt
 
-#os.getenv là hàm trong module os, dùng để đọc giá trị của 1 biến môi trường trong hệ điều hành
-#cú pháp: os.getenv('TÊN BIẾN', 'giá trị mặc định');
-#biến môi trường là gì? Là các giá trị cấu hình được lưu bên ngoài code, ở cấp hệ điều hành
-#vd: trước khi chạy chương trình, bạn có thể đặt
-#trên terminal (Linux/Mac): export MQTT_BROKER = 192.168.1.100; Windows: $env:MQTT_BROKER = '192.169.1.100'
-#khi đó os.getenv('MQTT_BROKER','localhost') sẽ trả về 192.168.1.100 thay vì localhost
 MQTT_BROKER = os.getenv('MQTT_BROKER', 'localhost') #địa chỉ của mqtt_broker: mặc định là localhost
-MQTT_PORT = int(os.getenv('MQTT_PORT', '1883')) #os.getenv trả về string, sử dụng int(os.getnv...) giúp giá trị trả về dưới dạng int
-MQTT_TOPIC = os.getenv('MQTT_TOPIC','iot/sensors')
-DEVICE_ID = os.getenv('DEVICE_ID', 'sensor-01')
+MQTT_PORT = int(os.getenv('MQTT_PORT', '1883')) #os.getenv trả về string, dùng int(...) để ép về kiểu số nguyên
+MQTT_TOPIC = os.getenv('MQTT_TOPIC', 'iot/power') #topic riêng cho dữ liệu công suất điện
+DEVICE_ID = os.getenv('DEVICE_ID', 'power-meter-01') #mã định danh cho đồng hồ đo điện
 PUBLISH_INTERVAL = float(os.getenv('PUBLISH_INTERVAL', '2'))
 
-#Trong python, sau khi khai báo hàm với dấu : ở cuối, 
-#tất cả các dòng thuộc thân hàm phải được thụt vào trong (thường là 4 dấu cách)
-def create_sensor_data():
-    #tạo giá trị mô phỏng cho sensor
-    temperature = round(random.uniform(25.0,35.0),2)
-    humidity = round(random.uniform(50.0,90.0),2)
-    #.uniform chỉ nhận 2 tham số còn 2 là của round
+#điện áp danh định (V): lưới điện dân dụng Việt Nam là 220V
+NOMINAL_VOLTAGE = float(os.getenv('NOMINAL_VOLTAGE', '220'))
 
-    #trong dictionary (từ điển) phải dùng dấy , chứ không phải dấu ;
+#Trong python, sau khi khai báo hàm với dấu : ở cuối,
+#tất cả các dòng thuộc thân hàm phải được thụt vào trong (thường là 4 dấu cách)
+def create_power_data():
+    #tạo giá trị mô phỏng cho đồng hồ đo công suất điện
+    voltage = round(random.uniform(215.0, 225.0), 2)   #điện áp (V), dao động quanh mức danh định 220V
+    current = round(random.uniform(0.5, 10.0), 2)      #dòng điện (A)
+    power_factor = round(random.uniform(0.85, 1.0), 2) #hệ số công suất (cos phi), nằm trong khoảng 0..1
+
+    #công suất tiêu thụ thực tế P = U * I * cos(phi), đơn vị watt (W)
+    #làm tròn 2 chữ số cho gọn
+    power = round(voltage * current * power_factor, 2)
+
+    frequency = round(random.uniform(49.9, 50.1), 2)   #tần số lưới điện (Hz), chuẩn VN là 50Hz
+
+    #trong dictionary (từ điển) phải dùng dấu , chứ không phải dấu ;
     #dictionary là 1 kiểu dữ liệu trong Python để lưu trữ dữ liệu theo dạng cặp key: value
     data = {
         'device_id': DEVICE_ID,
-        'temperature': temperature,
-        'humidity': humidity,
+        'voltage': voltage,           #điện áp (V)
+        'current': current,           #dòng điện (A)
+        'power': power,               #công suất tiêu thụ (W)
+        'power_factor': power_factor, #hệ số công suất
+        'frequency': frequency,       #tần số (Hz)
         'timestamp': datetime.now(timezone.utc).isoformat()
-
     }
     return data
 
@@ -43,7 +48,7 @@ def main(): #định nghĩa hàm main, là hàm điều chỉnh toàn bộ luồ
     client = mqtt.Client(client_id=DEVICE_ID)
     #in thông báo ra màn hình nhờ f-string - cho phép chèn giá trị biến vào trong {...}
     print(f'Connecting to mqtt broker at {MQTT_BROKER}:{MQTT_PORT}...')
-    #thực hiện kết nối tới broker, mở kết nối 60s, nếu trong 60s không có dữ liệu trao đổi, client sẽ ping để báo 'tôi vẫn sống', 
+    #thực hiện kết nối tới broker, mở kết nối 60s, nếu trong 60s không có dữ liệu trao đổi, client sẽ ping để báo 'tôi vẫn sống',
     #nếu broker không nhận được -> coi như client mất kết nối
     client.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
 
@@ -54,16 +59,16 @@ def main(): #định nghĩa hàm main, là hàm điều chỉnh toàn bộ luồ
     print(f"Publishing data to topic: {MQTT_TOPIC}")
 
     while True:
-        data = create_sensor_data()
+        data = create_power_data()
         payload = json.dumps(data)
 
         result = client.publish(MQTT_TOPIC, payload)
         if result.rc == mqtt.MQTT_ERR_SUCCESS:
-            print(f'Publisher: {payload}')
+            print(f'Published: {payload}')
         else:
             print(f'Failed to publish message. Error code: {result.rc}')
 
         time.sleep(PUBLISH_INTERVAL)
-    
+
 if __name__ == '__main__':
     main()
