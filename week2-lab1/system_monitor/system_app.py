@@ -4,7 +4,7 @@ import socket
 import time
 from datetime import datetime, timezone
 
-import paho.mqtt as mqtt
+import paho.mqtt.client as mqtt
 import psutil
 
 #khai báo giá trị mặc định cho các biến môi trường
