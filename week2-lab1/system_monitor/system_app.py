@@ -61,7 +61,7 @@ def main():
     while True:
         try:
             data = create_system_info()
-            payload = json.dumbs(data)
+            payload = json.dumps(data)
             result = client.publish(MQTT_TOPIC, payload)
 
             if result.rc == mqtt.MQTT_ERR_SUCCESS:
