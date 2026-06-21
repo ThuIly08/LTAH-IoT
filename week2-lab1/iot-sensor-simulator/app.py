@@ -2,8 +2,7 @@ import json
 import os
 import random
 import time
-import datetime 
-import datetime, timezone
+from datetime import datetime, timezone
 
 import paho.mqtt.client as mqtt
 
